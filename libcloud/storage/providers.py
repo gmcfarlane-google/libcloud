@@ -66,7 +66,7 @@ DRIVERS = {
     Provider.NINEFOLD:
     ('libcloud.storage.drivers.ninefold', 'NinefoldStorageDriver'),
     Provider.GOOGLE_STORAGE:
-    ('libcloud.storage.drivers.google_storage', 'GoogleStorageDriver'),
+    ('libcloud.storage.drivers.google_json', 'GoogleStorageDriver'),
     Provider.NIMBUS:
     ('libcloud.storage.drivers.nimbus', 'NimbusStorageDriver'),
     Provider.LOCAL:
