@@ -37,8 +37,6 @@ from libcloud.utils.iso8601 import parse_date
 API_VERSION = 'v1'
 DEFAULT_TASK_COMPLETION_TIMEOUT = 180
 
-
-
 class GCSResponse(GoogleResponse):
     pass
 
@@ -46,26 +44,6 @@ class GCSResponse(GoogleResponse):
 class GCSConnection(GoogleBaseConnection):
     """
     Connection class for the GCS driver.
-
-    GCSConnection extends :class:`google.GoogleBaseConnection` for 3 reasons:
-      1. modify request_path for GCE URI.
-      2. Implement gce_params functionality described below.
-      3. Add request_aggregated_items method for making aggregated API calls.
-
-    If the parameter gce_params is set to a dict prior to calling request(),
-    the URL parameters will be updated to include those key/values FOR A
-    SINGLE REQUEST. If the response contains a nextPageToken,
-    gce_params['pageToken'] will be set to its value. This can be used to
-    implement paging in list:
-
-    >>> params, more_results = {'maxResults': 2}, True
-    >>> while more_results:
-    ...     driver.connection.gce_params=params
-    ...     driver.ex_list_urlmaps()
-    ...     more_results = 'pageToken' in params
-    ...
-    [<GCEUrlMap id="..." name="cli-map">, <GCEUrlMap id="..." name="lc-map">]
-    [<GCEUrlMap id="..." name="web-map">]
     """
     host = 'www.googleapis.com'
     responseCls = GCSResponse
@@ -147,10 +125,23 @@ class GoogleStorageDriver(StorageDriver):
 
     def get_object(self, container_name, object_name):
         container = self.get_container(container_name)
-        request = 'b/%s/o/%s' % (container_name, object_name)
+        request = '/b/%s/o/%s' % (container_name, object_name)
         response = self.connection.request(request, method='GET')
         obj = self._to_object(item=response.object, container=container)
+        if obj is not None:
+            return obj
+        else:
+            raise ObjectDoesNotExistError(value=None, driver=self, object_name=object_name)
         return obj
+
+    def delete_object(self, obj):
+        object_name = obj.name
+        container_name = obj.container.name
+        request = 'b/%s/o/%s' % (container_name, object_name)
+        response = self.connection.request(request, method='DELETE')
+        if response.object == "":
+            return True
+        return False
 
     def create_container(self, container_name):
         request = '/b'
@@ -174,6 +165,7 @@ class GoogleStorageDriver(StorageDriver):
         request = '/b/%s/o/%s' % (container_name, object_name)
         response = self.connection.request(request, method='GET', params=params)
 
+        
     def _to_containers(self, data):
         containers = []
         for item in data['items']:
