@@ -21,6 +21,8 @@ import datetime
 import time
 import sys
 
+from libcloud.utils.py3 import httplib
+
 from libcloud.common.base import LazyObject
 from libcloud.common.google import GoogleOAuth2Credential
 from libcloud.common.google import GoogleResponse
@@ -162,10 +164,33 @@ class GoogleStorageDriver(StorageDriver):
         container_name = obj.container.name
         object_name = obj.name
         params = {'alt': 'media'}
+        raw = True
         request = '/b/%s/o/%s' % (container_name, object_name)
-        response = self.connection.request(request, method='GET', params=params)
+        response = self.connection.request(request, method='GET', params=params, raw=raw)
+        return self._get_object(obj=obj, callback=self._save_object,
+                                response=response,
+                                callback_kwargs={
+                                    'obj': obj,
+                                    'response': response.response,
+                                    'destination_path': destination_path,
+                                    'overwrite_existing': overwrite_existing,
+                                    'delete_on_failure': delete_on_failure
+                                },
+                                success_status_code=httplib.OK)
 
-        
+    def download_object_as_stream(self, obj, chunk_size=None):
+        container_name = obj.container.name
+        object_name = obj.name
+        params = {'alt': 'media'}
+        raw = True
+        request = '/b/%s/o/%s' % (container_name, object_name)
+        response = self.connection.request(request, method='GET', params=params, raw=raw)
+        return self._get_object(obj=obj, callback=read_in_chunks,
+                                response=response,
+                                callback_kwargs={'iterator': response.response,
+                                                 'chunk_size': chunk_size},
+                                success_status_code=httplib.OK)
+
     def _to_containers(self, data):
         containers = []
         for item in data['items']:
